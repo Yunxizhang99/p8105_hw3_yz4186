@@ -1,0 +1,224 @@
+---
+title: "p8105_hw3_yz4186"
+author: "Yunxi Zhang"
+date: "10/18/2021"
+output: github_document
+---
+
+#Homework 3
+
+### Problem 1
+#### This problem uses the Instacart data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets using: library(p8105.datasets) data("instacart")
+
+```{r, setup}
+library(tidyverse)
+## load the dataset
+library(p8105.datasets)
+data("instacart")
+```
+
+#### a) The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and giving illstrative examples of observations. Then, do or answer the following (commenting on the results of each):
+
+```{r}
+instacart ## take a look at the data
+```
+The "instacart" dataset has `r nrow(instacart)` rows and `r ncol(instacart)` columns. It contains data of each oder with showing the "product id", "user id" and "product name" and other detailder information. 
+
+#### b) How many aisles are there, and which aisles are the most items ordered from?
+
+```{r}
+ instacart_df = 
+  instacart %>% 
+  group_by(aisle) %>% 
+  summarize(n_order = n()) %>% 
+  arrange(desc(n_order)) #arrange(desc(n_order)) ## rank the number of order of each aisle
+
+instacart_df
+```
+Thus, there are 134 aisles and "fresh vegetables" is the most ordered one.
+
+#### c) Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Arrange aisles sensibly, and organize your plot so others can read it. 
+
+```{r}
+instacart_df %>% 
+  filter(n_order > 10000) %>% ## limit to aisles with more than 10000
+  mutate(
+    aisle = factor(aisle), ## convert char var to factor var
+    aisle = fct_reorder(aisle, n_order) ## arrange aisles sensibly
+  ) %>%
+  ggplot(aes(x = aisle, y = n_order)) + 
+  geom_point(alpha = .3) +
+  labs(
+    title = "aisle plot",
+    x = "aisle",
+    y = "number of items ordered"
+   ) + 
+theme(axis.text.x = element_text(angle = -45, vjust = 0.5, hjust = 0)) +
+  geom_point()
+```
+
+#### d) Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+
+```{r}
+instacart %>% 
+  group_by(aisle) %>% 
+  filter(
+    aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits") ## filter the aisle
+    ) %>% 
+  count(product_name) %>%  ## count the times of ordered 
+  filter(min_rank(desc(n)) < 4) %>%  ## filter the top 3 orders
+  arrange(desc(n)) %>%    ## arrange them in descending order
+  knitr::kable() 
+```
+
+### e) Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+```{r}
+ instacart %>% 
+  ## select the product
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarize(
+  ## calculate the mean hour of each day
+    mean_hour = mean(order_hour_of_day),
+  ) %>% 
+  pivot_wider(
+    names_from = "order_dow",
+    values_from = "mean_hour"
+  )
+```
+
+## Problem 2
+#### This problem uses the BRFSS data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets package.
+
+```{r}
+library("p8105.datasets")
+data("brfss_smart2010")
+```
+
+#### First, do some data cleaning:
+#### format the data to use appropriate variable names;focus on the “Overall Health” topic include only responses from “Excellent” to “Poor” organize; responses as a factor taking levels ordered from “Poor” to “Excellent”;   
+
+```{r}
+brfss_df =
+  brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(
+    topic == "Overall Health",  ## focus on the "Overall Health" topic
+    response %in% c("Excellent", "Very good", "Good", "Fair", "Poor") ## Including only these 4 responses
+) %>%
+  mutate(
+    response = factor(response),
+    ## convert char to factor 
+    response = fct_relevel(response, c("Poor", "Fair", "Good", "Very good", "Excellent")) 
+  )
+```
+
+#### Using this dataset, do or answer the following (commenting on the results of each):
+##### In 2002, which states were observed at 7 or more locations? What about in 2010?
+
+```{r}
+## In 2002
+brfss_df %>% 
+  filter(year == "2002") %>%  
+  group_by(locationabbr) %>%
+  distinct(locationdesc) %>% ## count distinct location in each state
+  count() %>%    
+  filter( n >= 7) %>% ## filter state with at 7 or more locations
+  arrange(n)
+
+## In 2010
+brfss_df %>% 
+  filter(year == "2010") %>% 
+  group_by(locationabbr) %>%  
+  distinct(locationdesc) %>%  ## count distinct location in each state
+  count() %>%    
+  filter( n >= 7) %>%  ## filter state with at 7 or more locations
+  arrange(n)
+```
+Therefore, "CT", "FL", "MA", "MC", "NJ" and "PA" have at 7 or more locations.
+
+#### Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+ 
+```{r}
+Excellent_df = 
+  brfss_df %>% 
+  filter(response == "Excellent") %>% 
+  select(year, locationabbr, response, data_value) %>% 
+  group_by(year,locationabbr) %>% 
+  ## Calculate the average value for each state
+  summarize(average= mean(data_value)) 
+
+Excellent_df
+
+## make a plot
+Excellent_df %>% 
+ggplot(aes(x = year, y = average, color = locationabbr)) +
+  geom_line(alpha = 0.5) +
+  labs(
+    title = "The mean data value over time within state",
+    y = "Average value", 
+    x = "Year",
+  ) 
+```
+
+Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+```{r}
+brfss_df %>% 
+   filter(
+      year %in% c(2006, 2010), ## for years 2006 and 2010
+      locationabbr == "NY"  ## in NY State
+  ) %>% 
+    ggplot(aes(x = data_value, color = year)) +
+    geom_density() +  ## generate distribution plot
+    facet_grid(. ~ year) + 
+    labs(title = "Distribution of data value of responses in 2006 and 2010 in NY    State",
+    x = "Data value of responses",
+    y = "Density of data value") 
+```
+
+### Problem 3 
+
+#### Load, tidy, and otherwise wrangle the data. Your final dataset should include all originally observed variables and values; have useful variable names; include a weekday vs weekend variable; and encode data with reasonable variable classes. Describe the resulting dataset (e.g. what variables exist, how many observations, etc).
+
+```{r}
+## load the data
+accel_df = read_csv("./data/accel_data.csv")
+
+## tidy the data
+## change the data to human_read 
+accel_clean = accel_df %>% 
+  pivot_longer(   
+    activity.1 : activity.1440,
+    names_to = "minute",
+    names_prefix = "activity.",
+    values_to = "activity_counts"
+  ) %>% 
+mutate( 
+      weekday = 
+      case_when(day %in% c("Monday","Tuesday","Wednesday","Thursday","Friday") ~ "weekday", ## generate weekday vs weekend variable
+      day %in% c("Saturday","Sunday") ~ "weekend")
+  ) 
+```
+
+#### Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals. Are any trends apparent?
+
+```{r}
+
+```
+
+#### Accelerometer data allows the inspection activity over the course of the day. Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. Describe in words any patterns or conclusions you can make based on this graph.
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
