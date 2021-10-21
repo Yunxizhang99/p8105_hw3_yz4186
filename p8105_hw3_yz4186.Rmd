@@ -2,12 +2,10 @@
 title: "p8105_hw3_yz4186"
 author: "Yunxi Zhang"
 date: "10/18/2021"
-output:
-  html_document:
-    df_print: paged
+output: github_document
 ---
 
-#Homework 3
+# Homework 3
 
 ### Problem 1
 #### This problem uses the Instacart data. DO NOT include this dataset in your local data directory; instead, load the data from the p8105.datasets using: library(p8105.datasets) data("instacart")
@@ -87,7 +85,8 @@ instacart %>%
   pivot_wider(
     names_from = "order_dow",
     values_from = "mean_hour"
-  )
+  ) %>% 
+  knitr::kable() 
 ```
 
 ## Problem 2
@@ -138,7 +137,8 @@ brfss_df %>%
   filter( n >= 7) %>%  ## filter state with at 7 or more locations
   arrange(n)
 ```
-Therefore, "CT", "FL", "MA", "MC", "NJ" and "PA" have at 7 or more locations.
+Therefore, "CT", "FL", "MA", "MC", "NJ" and "PA" have at 7 or more locations in 2002.
+"CO", "PA","SC", "OH", "MA", "NY", "NE", "WA", "CA" and "MD" have at 7 or more locations in 2010. 
 
 #### c) Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
  
@@ -161,7 +161,8 @@ ggplot(aes(x = year, y = average, color = locationabbr)) +
     title = "The mean data value over time within state",
     y = "Average value", 
     x = "Year",
-  ) 
+  ) +
+  viridis::scale_color_viridis(discrete = T) 
 ```
 
 #### d) Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
@@ -253,11 +254,11 @@ accel_weekday %>%
 ## need to scale the x-axis
   scale_x_continuous(
     breaks = c(0, 360, 720, 1080, 1440), 
-    labels = c("12a.m.", "6a.m.", "12p.m.", "6p.m.", "11:59p.m."),
+    labels = c("12am.", "6am.", "12pm.", "6pm.", "11:59pm."),
     limits = c(0, 1440)
   ) 
 ```
-From the plot I find that the most activities in each day occur at 12 pm and 11:59 pm. 
+From the plot I find that patients have 2 peak activity period in a day at 12 pm. and 11:59 pm. And they keep low level activity at other time. 
 
 
 
